@@ -3,13 +3,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
+import joblib
 
 df = pd.read_csv('heart.csv') # Load Data
 print("Original Data Loaded:", df.shape)
 
-df = df.drop_duplicates()  # Data Cleaning
-df = df.fillna(df.mean(numeric_only=True))
-print("After Cleaning:", df.shape)
+df = df.drop_duplicates() # Data Cleaning
+df = df.fillna(df.median(numeric_only=True))
+df = df.fillna(df.mode().iloc[0])
+print("After Cleaning:",df.shape)
+# pre-processing
+for c in df.select_dtypes('object'): # Convert String → Numbers
+    df[c] = LabelEncoder().fit_transform(df[c])
+print("After Encoding:",df.head())
 
 corr = df.corr()['target'].abs() # Feature Selection (keep only useful features)
 features = corr[corr>0.1].index.drop('target')
@@ -20,11 +26,9 @@ y = df['target']
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=42)
 
 model = LogisticRegression(solver='liblinear') #  Train & Evaluate
-model.fit(x_train, y_train)
+model.fit(x_train,y_train)
 y_pred = model.predict(x_test)
 print("Accuracy: {:.2f}%".format(accuracy_score(y_test, y_pred) * 100))
 
-data_df=pd.read_csv('test_data.csv') #prediction
-x=data_df.drop(columns=['target'])
-y_Pred=model.predict(x)
-print(y_Pred)
+joblib.dump(model, 'heart_model.pkl')  # Save the model as .pkl automatically
+print("heart_model.pkl file created successfully!")
